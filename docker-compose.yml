@@ -1,0 +1,14 @@
+version: '3.8'
+
+services:
+  cat-doraemon-farm:
+    build: .
+    container_name: cat-doraemon-farm
+    restart: always
+    environment:
+      # Set to 'all' to run all accounts, or comma separated numbers like '1,2'
+      - AUTO_START=all
+      - TZ=Asia/Ho_Chi_Minh
+    volumes:
+      # Mount the data directory so account sessions are preserved across restarts!
+      - ./data:/app/data
