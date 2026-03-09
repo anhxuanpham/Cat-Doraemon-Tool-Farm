@@ -1,6 +1,6 @@
 # 🐱 Cat Doraemon Tool Farm
 
-A fully automated, multi-account farming bot designed specifically for the **Cat Doraemon** Discord game. Written in TypeScript and powered by `discord.js-selfbot-v13`, this tool allows you to safely farm experience, items, and currency 24/7 with advanced anti-detection mechanisms, automatic Captcha solving, and headless Docker deployment support.
+A fully automated, multi-account farming bot designed specifically for the **Cat Doraemon** Discord game. Written in TypeScript and powered by `discord.js-selfbot-v13`, this tool allows you to safely farm experience, items, and currency 24/7 with advanced anti-detection mechanisms, optional timed rest periods, automatic Captcha solving, and headless Docker deployment support.
 
 **Author:** William
 
@@ -16,6 +16,7 @@ A fully automated, multi-account farming bot designed specifically for the **Cat
   * Configurable `inter-command` delay (e.g. `2000-6000ms`), randomized per action.
   * ±20% randomized jitter applied to all hardcoded cooldowns.
   * Auto-sleep rest breaks (`30s-120s`) triggered randomly after every `5-15` commands.
+  * Optional night mode that rests after `10-14` active farming hours for a shorter `30-90` minute break.
 * **2Captcha Integration**: Automatically detects captchas, downloads the image, sends it to the 2Captcha API for verification, and submits the answer—resuming the farm loop seamlessly.
 * **Smart Error Handling**: Recovers gracefully from Discord API 500 Network drops and missed responses.
 * **Interactive CLI Setup**: Easy-to-use setup wizard upon running for the very first time. No need to touch JSON configuration files manually.
@@ -48,6 +49,7 @@ On your first run, the interactive CLI will guide you through setting up an acco
 - Toggle features on/off.
 - Input your **2Captcha API Key** (Optional but highly recommended).
 - Set your preferred Inter-Command Delays.
+- Optionally enable night mode if you want a longer timed rest cycle. It is off by default.
 
 Configurations are saved locally to `data/data.json`.
 To run multiple accounts, restart the tool, select `Add new account`, and repeat the process. Finally, select `all` when prompted to start all your farm accounts simultaneously.

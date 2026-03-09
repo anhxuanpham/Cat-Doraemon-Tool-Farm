@@ -18,6 +18,10 @@ export const ConfigSchema = z.object({
     autoWorldBoss: z.boolean().default(true),
 
     interCommandDelay: z.string().default("2000-6000"),
+    nightMode: z.boolean().default(false),
+    nightModeTime: z.string().default("10-14"), // active hours before resting
+    nightModeSleepTime: z.string().default("30-90"), // rest duration in minutes
+
     captchaAPIKey: z.string().optional(),
 });
 

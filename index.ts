@@ -133,6 +133,16 @@ const promptNewAccount = async (): Promise<Configuration> => {
     const interCommandDelayInput = await question("⏱️ Inter-Command Delay (min-max ms, default: 2000-6000): ");
     let interCommandDelay = interCommandDelayInput.trim() || "2000-6000";
 
+    const nightMode = (await question("🌙 Night Mode (rest after active farming time)? [n]: ")).toLowerCase() === "y";
+    let nightModeTime = "10-14";
+    let nightModeSleepTime = "30-90";
+    if (nightMode) {
+        const nmInput = await question("   Active hours before resting (min-max hours, default: 10-14): ");
+        nightModeTime = nmInput.trim() || "10-14";
+        const restInput = await question("   Rest duration (min-max minutes, default: 30-90): ");
+        nightModeSleepTime = restInput.trim() || "30-90";
+    }
+
     console.log("\n--- Captcha Solver (2Captcha) ---");
     const captchaAPIKey = await question("🤖 2Captcha API Key (Leave empty to skip): ");
 
@@ -147,6 +157,9 @@ const promptNewAccount = async (): Promise<Configuration> => {
         autoFightBoss,
         autoWorldBoss,
         interCommandDelay,
+        nightMode,
+        nightModeTime,
+        nightModeSleepTime,
         captchaAPIKey: captchaAPIKey || undefined,
     };
 

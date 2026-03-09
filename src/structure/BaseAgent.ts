@@ -50,12 +50,98 @@ export class BaseAgent {
     private commandsExecuted = 0;
     private autoSleepThreshold = ranInt(5, 16); // Sleep after 5-15 commands
 
+    // Night mode: rest after X active hours of farming
+    private nextNightSleepAfterMs = 0;
+    private nightModeActiveMs = 0;
+    private nightModeLastStartedAt = 0;
+
     public farmLoopRunning = false;
     public farmLoopPaused = false;
 
     constructor(client: ExtendedClient<true>, config: Configuration) {
         this.client = client;
         this.config = config;
+    }
+
+    private parseRange = (
+        value: string | undefined,
+        defaultMin: number,
+        defaultMax: number
+    ): [number, number] => {
+        const parts = value?.split("-") ?? [];
+        if (parts.length !== 2) {
+            return [defaultMin, defaultMax];
+        }
+
+        const min = Number.parseInt(parts[0], 10);
+        const max = Number.parseInt(parts[1], 10);
+
+        if (!Number.isFinite(min) || !Number.isFinite(max) || min <= 0 || max < min) {
+            return [defaultMin, defaultMax];
+        }
+
+        return [min, max];
+    }
+
+    private pickRangeValue = (
+        value: string | undefined,
+        defaultMin: number,
+        defaultMax: number
+    ): number => {
+        const [min, max] = this.parseRange(value, defaultMin, defaultMax);
+        return min === max ? min : ranInt(min, max + 1);
+    }
+
+    private formatDuration = (durationMs: number): string => {
+        const totalMinutes = Math.max(1, Math.round(durationMs / 60_000));
+        if (totalMinutes < 60) {
+            return `${totalMinutes} minute${totalMinutes === 1 ? "" : "s"}`;
+        }
+
+        const hours = Math.floor(totalMinutes / 60);
+        const minutes = totalMinutes % 60;
+        if (minutes === 0) {
+            return `${hours} hour${hours === 1 ? "" : "s"}`;
+        }
+
+        return `${hours}h ${minutes}m`;
+    }
+
+    private pauseNightModeTimer = () => {
+        if (!this.config.nightMode || this.nightModeLastStartedAt === 0) {
+            return;
+        }
+
+        this.nightModeActiveMs += Date.now() - this.nightModeLastStartedAt;
+        this.nightModeLastStartedAt = 0;
+    }
+
+    private resumeNightModeTimer = () => {
+        if (!this.config.nightMode || this.nextNightSleepAfterMs === 0 || this.nightModeLastStartedAt !== 0) {
+            return;
+        }
+
+        this.nightModeLastStartedAt = Date.now();
+    }
+
+    private getNightModeElapsedMs = () => {
+        if (!this.config.nightMode) {
+            return 0;
+        }
+
+        return this.nightModeActiveMs + (
+            this.nightModeLastStartedAt === 0
+                ? 0
+                : Date.now() - this.nightModeLastStartedAt
+        );
+    }
+
+    private scheduleNextNightRest = () => {
+        const activeHours = this.pickRangeValue(this.config.nightModeTime, 10, 14);
+        this.nextNightSleepAfterMs = activeHours * 60 * 60 * 1000;
+        this.nightModeActiveMs = 0;
+        this.nightModeLastStartedAt = Date.now();
+        return activeHours;
     }
 
     public setActiveChannel = (id?: string): GuildTextBasedChannel | undefined => {
@@ -182,21 +268,42 @@ export class BaseAgent {
         }
 
         if (this.farmLoopPaused) {
+            this.pauseNightModeTimer();
             logger.debug("Farm loop is paused, skipping.");
             return;
         }
 
         this.farmLoopRunning = true;
+        this.resumeNightModeTimer();
 
         try {
             if (this.captchaDetected) {
+                this.pauseNightModeTimer();
                 logger.warn("⚠️ Farm loop skipped because captcha is detected!");
                 this.farmLoopRunning = false;
                 return;
             }
 
+            // --- Night Mode Check ---
+            if (this.config.nightMode && this.nextNightSleepAfterMs > 0 && this.getNightModeElapsedMs() >= this.nextNightSleepAfterMs) {
+                const elapsedMs = this.getNightModeElapsedMs();
+                const sleepMinutes = this.pickRangeValue(this.config.nightModeSleepTime, 30, 90);
+                const sleepMs = sleepMinutes * 60 * 1000;
+
+                this.pauseNightModeTimer();
+                logger.info(
+                    `🌙 [NIGHT MODE] Bot is resting for ${this.formatDuration(sleepMs)} ` +
+                    `after ${this.formatDuration(elapsedMs)} of active farming.`
+                );
+                await this.client.sleep(sleepMs);
+
+                const activeHours = this.scheduleNextNightRest();
+                logger.info(`☀️ [NIGHT MODE] Rest finished. Next rest after ${activeHours} active hours.`);
+            }
+
             const featureKeys = Array.from(this.features.keys());
             if (featureKeys.length === 0) {
+                this.pauseNightModeTimer();
                 logger.warn("⚠️ No features available to run!");
                 return;
             }
@@ -233,15 +340,7 @@ export class BaseAgent {
                     }
 
                     // Random delay between features based on config
-                    let minDelay = 2000, maxDelay = 6000;
-                    if (this.config.interCommandDelay) {
-                        const parts = this.config.interCommandDelay.split("-");
-                        if (parts.length === 2) {
-                            minDelay = parseInt(parts[0], 10) || 2000;
-                            maxDelay = parseInt(parts[1], 10) || 6000;
-                        }
-                    }
-                    const sleepTimeMs = ranInt(minDelay, maxDelay + 1);
+                    const sleepTimeMs = this.pickRangeValue(this.config.interCommandDelay, 2000, 6000);
                     logger.info(`⏳ Waiting ${Math.round(sleepTimeMs / 1000)}s before next command...`);
                     await this.client.sleep(sleepTimeMs);
                 } catch (error) {
@@ -278,10 +377,12 @@ export class BaseAgent {
             if (errorMessage.includes("fetch failed") ||
                 errorMessage.includes("ECONNRESET") ||
                 errorMessage.includes("ETIMEDOUT")) {
+                this.pauseNightModeTimer();
                 logger.alert("🌐 Network failure, auto-recovering in 30s...");
                 setTimeout(() => {
                     logger.info("🌐 Attempting to resume farming...");
                     this.farmLoopRunning = false;
+                    this.resumeNightModeTimer();
                     this.farmLoop();
                 }, 30000);
                 return;
@@ -309,6 +410,12 @@ export class BaseAgent {
         const agent = new BaseAgent(client, config);
         agent.setActiveChannel();
 
+        // Start counting active farming time only after the feature is explicitly enabled.
+        if (config.nightMode) {
+            const activeHours = agent.scheduleNextNightRest();
+            logger.info(`🌙 Night Mode Enabled: Bot will rest after ${activeHours} active hours of farming.`);
+        }
+
         await agent.registerFeatures();
 
         // Register Captcha Detection Listener
@@ -332,6 +439,7 @@ export class BaseAgent {
                 if (!agent.captchaDetected) {
                     agent.captchaDetected = true;
                     agent.farmLoopPaused = true;
+                    agent.pauseNightModeTimer();
                     logger.alert("🚨 CAPTCHA DETECTED! STOPPING ALL COMMANDS!");
                     
                     try {
@@ -370,6 +478,7 @@ export class BaseAgent {
                 setTimeout(() => {
                     agent.captchaDetected = false;
                     agent.farmLoopPaused = false;
+                    agent.resumeNightModeTimer();
                     if (!agent.farmLoopRunning) {
                         agent.farmLoop();
                     }
