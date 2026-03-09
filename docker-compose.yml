@@ -8,5 +8,5 @@ services:
       - AUTO_START=all
       - TZ=Asia/Ho_Chi_Minh
     volumes:
-      # Mount the data directory so account sessions are preserved across restarts!
-      - ./data:/app/data
+      # Bind the config file directly so deployment fails fast if it is missing.
+      - ./data/data.json:/app/data/data.json
