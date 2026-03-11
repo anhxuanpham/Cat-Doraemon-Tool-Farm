@@ -8,5 +8,7 @@ services:
       - AUTO_START=all
       - TZ=Asia/Ho_Chi_Minh
     volumes:
-      # Bind the config file directly so deployment fails fast if it is missing.
+      - .:/app
+      - /app/node_modules
       - ./data/data.json:/app/data/data.json
+    command: npm run watch

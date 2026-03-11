@@ -67,12 +67,8 @@ const main = async () => {
         console.log(`  ${allKeys.length + 1}. Add new account`);
         console.log();
 
-        let choice = process.env.AUTO_START || "";
-        if (!choice) {
-            choice = await question("Select account(s) to run (comma-separated numbers or 'all'): ");
-        } else {
-            console.log(`🤖 Auto-starting accounts: ${choice}`);
-        }
+        const choice = process.env.AUTO_START || "all";
+        console.log(`🤖 Auto-starting accounts: ${choice}`);
         
         if (choice.toLowerCase() === "all" || choice === "*") {
             configsToRun = allKeys.map(k => configManager.get(k)!);

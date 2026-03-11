@@ -52,7 +52,7 @@ On your first run, the interactive CLI will guide you through setting up an acco
 - Optionally enable night mode if you want a longer timed rest cycle. It is off by default.
 
 Configurations are saved locally to `data/data.json`.
-To run multiple accounts, restart the tool, select `Add new account`, and repeat the process. Finally, select `all` when prompted to start all your farm accounts simultaneously.
+To run multiple accounts, restart the tool, select `Add new account`, and repeat the process. Once accounts are saved, `npm start` will launch all of them automatically by default.
 
 ---
 

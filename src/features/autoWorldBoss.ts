@@ -17,7 +17,7 @@ export default Schematic.registerFeature({
         await agent.awaitResponse({
             trigger: async () => {
                 await agent.client.sleep(2000);
-                await agent.activeChannel.send("cat wb f f");
+                await agent.activeChannel.send("cat wb f h");
             },
             filter: (m) => m.author.id === agent.catBotID && m.embeds.length > 0,
             expectResponse: true,
