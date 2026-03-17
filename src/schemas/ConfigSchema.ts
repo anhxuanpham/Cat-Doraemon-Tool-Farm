@@ -11,7 +11,13 @@ export const ConfigSchema = z.object({
     }),
     // Feature toggles
     autoClaim: z.boolean().default(true),
+    autoWork: z.boolean().default(true),
+    autoDaily: z.boolean().default(true),
+    autoAdventurePlay: z.boolean().default(true),
+    autoAdventureGroom: z.boolean().default(true),
+    autoAdventureFeed: z.boolean().default(true),
     autoFight: z.boolean().default(true),
+    autoFightD: z.boolean().default(true),
     autoFightS: z.boolean().default(true),
     autoFightT: z.boolean().default(true),
     autoFightBoss: z.boolean().default(true),
