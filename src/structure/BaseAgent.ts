@@ -489,6 +489,25 @@ export class BaseAgent {
         logger.info(`🐱 Logged in as ${client.user.username}`);
         logger.info("🎯 Starting farm loop...");
 
+        // Periodically sweep cached messages to prevent memory buildup
+        setInterval(() => {
+            let swept = 0;
+            client.channels.cache.forEach((channel) => {
+                if (channel.isText() && 'messages' in channel) {
+                    const msgCache = (channel as any).messages?.cache;
+                    if (msgCache && msgCache.size > 50) {
+                        const toRemove = msgCache.size - 20;
+                        const sorted = [...msgCache.keys()].slice(0, toRemove);
+                        for (const key of sorted) {
+                            msgCache.delete(key);
+                            swept++;
+                        }
+                    }
+                }
+            });
+            if (swept > 0) logger.debug(`🧹 Swept ${swept} cached messages`);
+        }, 5 * 60 * 1000); // Every 5 minutes
+
         agent.farmLoop();
     }
 }

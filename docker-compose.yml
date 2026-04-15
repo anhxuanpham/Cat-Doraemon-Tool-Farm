@@ -3,6 +3,11 @@ services:
     build: .
     container_name: cat-doraemon-farm
     restart: always
+    # Limit container memory to prevent runaway heap from killing the host
+    deploy:
+      resources:
+        limits:
+          memory: 768M
     environment:
       # Set to 'all' to run all accounts, or comma separated numbers like '1,2'
       - AUTO_START=all
@@ -11,4 +16,4 @@ services:
       - .:/app
       - /app/node_modules
       - ./data/data.json:/app/data/data.json
-    command: npm run watch
+    command: npm start

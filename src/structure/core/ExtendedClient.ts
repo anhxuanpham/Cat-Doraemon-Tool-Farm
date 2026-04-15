@@ -6,7 +6,14 @@ import { ranInt } from "@/utils/math.js";
 
 export class ExtendedClient<Ready extends boolean = boolean> extends Client<Ready> {
     constructor(options: ClientOptions = {}) {
-        super(options);
+        super({
+            ...options,
+            // Limit caches to prevent heap growth over time
+            messageCacheMaxSize: 50,
+            messageCacheLifetime: 120,
+            messageSweepInterval: 60,
+            sweepInterval: 60,
+        });
     }
 
     public registerEvents = () => {
